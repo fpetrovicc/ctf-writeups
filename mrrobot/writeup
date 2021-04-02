@@ -1,0 +1,61 @@
+# mrrobot_no1_writeup
+
+## Lab setup
+- Setup was done on a host Ubuntu 20.04, with VirtualBox used for virtualization. 
+- Networking part was little bit tricky at first, I tried experimenting with Bridged Adapter and Internal Network modes, but latter didn't quite work out. I managed to get it working with Bridged Adapter and after that all went smooth in terms of connection to the victim machine.
+
+## Recon
+- Quick nmap scan showed that SSH port was closed, which means that that door is closed for us.
+- I saw that there is also an HTTP server and then I rerunned the nmap, but this time with scripts.
+- Detailed output gave a clue that Wordpress is under the hood.
+
+## Trying to get initial foothold
+- I tried opening the page in web browser. It succeeded and indeed, it was themed Mr. Robot-ish. There are few commands that just show us some videos and pictures with lore, nothing of interest there (or atleast I didn't find anything of interest).
+- I knew that I need to go further than the fake shell, so I wanted to do directory fuzzing.
+- Since I am on a fresh install of this host, I don't have any word/seclists so I didn't want to use dirbuster or something like that.
+- Luckily, nmap has the http-enum which was perfect in this case.
+- It gave me some pretty interesting pages, so I began to explore.
+- First one I checked and voila! robots.txt had two entries, one of them being the first key. Second one, was a .dic file that contained lots of what seemed passwords.
+- I saved those files and tried the /login.php page. On the "blog", it said"User's blog" and I tried the username but it wasn't valid.
+- Shortly after, I felt stuck and wanted to check the .dic file more.
+- It contained lots of same words, so I sorted it and only saved the unique. From 1000+, to ~33 passwords - wow.
+- Now that I have all of those, I only needed a username. I tried some basic ones like admin and stuff, but none of them worked. Then, I noticed in the .dic file that elliot is popping around so it was logical to try it.
+- I fired up wpscan and it worked like a charm.
+- Gave me a combination: elliot:ER28-0652
+- Went back to the login and it worked!! 
+
+## Good 'ole reverse shell
+- While exploring the Wordpress CMS, in one of the uploaded pictures, it contained actual password to a user: mich05654:Dylan_2791
+- Didn't really find use for it, but it was there.
+- Only logical way was to get a reverse shell up and running.
+- Since it was PHP, I decided to generate a PHP reverse shell with msfvenom.
+- It successfully uploaded and I could curl it.
+- I ran the netcat, sent the request and that's it! We have a basic shell up and running
+
+## tty hell
+- Most painful part of the box was really upgrading the shell, since it would break every time.
+- I then tried to use msf to catch the shell and upgrade it and it actually did upgrade but to a meterpreter shell.
+- While that is really cool, it was not something I wanted and I terminated it.
+- Eventually, I found out my zsh is not really happy with me doing the sttypart so I switched to bash and that was better.
+- I managed to get a decent shell and that part was happily over.
+
+## Almost finished!!
+- I searched around and I found the second flag in the folder of user robot.
+- But flag was read protected, so I had to get creds for this user.
+- Conveniently, md5 hash was there so all I had to do is crack it.
+- I used a cloud service to crack it and it was quite fast since creds are literally letters a-z
+- Once I got the user and the flag, only thing left was to root the box
+
+## uid=0(root)
+- I did a quick search for possible GUID bins and we had /bin/sh to our disposal
+- Now this gives us options, but since nmap was present on the box, using !sh on interactive nmap is quite handy and gives us easy, easy root.
+
+## Proof of completion
+- KEY 1 OF 3 = "073403c8a58a1f80d943455fb30724b9"
+- KEY 2 OF 3 = "822c73956184f694993bede3eb39f959"
+- KEY 3 OF 3 = "04787ddef27c3dee1ee161b21670b4e4"
+
+## Summary
+- Since this was my first box in quite some time, it took me some time to do it all.
+- Actually, it took me around ~3h to do it, which to be honest is quite good for a beginner like me.
+- It was fun and definetly motivated me to do more. 
